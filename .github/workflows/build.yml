@@ -1,0 +1,42 @@
+name: Build NetBird Geolocation DB
+
+on:
+  workflow_dispatch: # 允许你手动点击按钮触发
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Download CSV from NetBird
+        run: |
+          curl -L -o geodata.zip "https://pkgs.netbird.io/geolocation-dbs/GeoLite2-City-CSV/download?suffix=zip"
+          unzip geodata.zip
+
+      - name: Run Conversion Script
+        run: python convert.py
+
+      - name: Upload result to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: netbird-db
+          path: geonames_20251217.db
+
+      - name: Create Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: geonames_20251217.db
+          tag_name: v20251217
+          name: Release 20251217
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
